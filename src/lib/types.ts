@@ -46,6 +46,7 @@ export interface MarketData {
   low24h: number;
   volume: number;
   marketCap?: number;
+  sparkline?: number[];
 }
 
 export interface CandleData {
