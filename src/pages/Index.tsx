@@ -13,6 +13,11 @@ import { PortfolioPanel } from "@/components/PortfolioPanel";
 import { NewsPanel } from "@/components/NewsPanel";
 import { LivePricesPanel } from "@/components/LivePricesPanel";
 import { FearGreedGauge } from "@/components/FearGreedGauge";
+import { HeatmapPanel } from "@/components/HeatmapPanel";
+import { OrderBookPanel } from "@/components/OrderBookPanel";
+import { EconomicCalendar } from "@/components/EconomicCalendar";
+import { BacktestPanel } from "@/components/BacktestPanel";
+import { TradingStrategies } from "@/components/TradingStrategies";
 import { Analysis, ChartAnalysis } from "@/lib/types";
 
 type ViewType = "chat" | "analysis" | "strategies" | "chart" | "watchlist" | "alerts" | "portfolio" | "backtest" | "news" | "orderbook" | "heatmap" | "calendar" | "prices";
@@ -30,6 +35,11 @@ export default function Index() {
     setActiveView("chart");
   };
 
+  const handleStrategySelect = (prompt: string) => {
+    setPendingPrompt(prompt);
+    setActiveView("chat");
+  };
+
   const renderContent = () => {
     switch (activeView) {
       case "chart":
@@ -39,6 +49,12 @@ export default function Index() {
             <div className="w-80 flex-shrink-0">
               <ChartAnalysisPanel analysis={chartAnalysis} symbol={selectedSymbol} currentPrice={selectedSymbol.includes("BTC") ? 97500 : 3450} />
             </div>
+          </div>
+        );
+      case "strategies":
+        return (
+          <div className="flex-1 overflow-y-auto bg-gradient-to-br from-background via-background to-secondary/5">
+            <TradingStrategies onSelectStrategy={handleStrategySelect} />
           </div>
         );
       case "watchlist":
@@ -62,11 +78,42 @@ export default function Index() {
             <div className="flex-1 p-4"><ProChart symbol={selectedSymbol} onAnalysisUpdate={setChartAnalysis} /></div>
           </div>
         );
+      case "backtest":
+        return (
+          <div className="flex-1 flex">
+            <div className="flex-1 max-w-md border-r border-border"><BacktestPanel /></div>
+            <div className="flex-1 p-4"><ProChart symbol={selectedSymbol} onAnalysisUpdate={setChartAnalysis} /></div>
+          </div>
+        );
       case "news":
         return (
           <div className="flex-1 flex">
             <div className="flex-1 max-w-lg border-r border-border"><NewsPanel /></div>
             <div className="flex-1 flex flex-col gap-4 p-4">
+              <FearGreedGauge />
+              <div className="flex-1"><ProChart symbol={selectedSymbol} onAnalysisUpdate={setChartAnalysis} /></div>
+            </div>
+          </div>
+        );
+      case "orderbook":
+        return (
+          <div className="flex-1 flex">
+            <div className="flex-1 max-w-sm border-r border-border"><OrderBookPanel symbol={selectedSymbol} /></div>
+            <div className="flex-1 p-4"><ProChart symbol={selectedSymbol} onAnalysisUpdate={setChartAnalysis} /></div>
+          </div>
+        );
+      case "heatmap":
+        return (
+          <div className="flex-1 flex">
+            <div className="flex-[2]"><HeatmapPanel /></div>
+            <div className="w-80 border-l border-border"><LivePricesPanel onSelectSymbol={handleSymbolSelect} /></div>
+          </div>
+        );
+      case "calendar":
+        return (
+          <div className="flex-1 flex">
+            <div className="flex-1 max-w-lg border-r border-border"><EconomicCalendar /></div>
+            <div className="flex-1 p-4 flex flex-col gap-4">
               <FearGreedGauge />
               <div className="flex-1"><ProChart symbol={selectedSymbol} onAnalysisUpdate={setChartAnalysis} /></div>
             </div>
@@ -79,10 +126,19 @@ export default function Index() {
             <div className="flex-1 p-4"><ProChart symbol={selectedSymbol} onAnalysisUpdate={setChartAnalysis} /></div>
           </div>
         );
+      case "chat":
+      case "analysis":
       default:
         return (
           <>
-            <ChatPanel onAnalysisComplete={(data) => { setAnalysis(data); setActiveView("analysis"); }} isAnalyzing={isAnalyzing} setIsAnalyzing={setIsAnalyzing} isVisible={activeView === "chat"} pendingPrompt={pendingPrompt} clearPendingPrompt={() => setPendingPrompt(null)} />
+            <ChatPanel 
+              onAnalysisComplete={(data) => { setAnalysis(data); setActiveView("analysis"); }} 
+              isAnalyzing={isAnalyzing} 
+              setIsAnalyzing={setIsAnalyzing} 
+              isVisible={activeView === "chat"} 
+              pendingPrompt={pendingPrompt} 
+              clearPendingPrompt={() => setPendingPrompt(null)} 
+            />
             <AnalysisPanel analysis={analysis} isAnalyzing={isAnalyzing} isVisible={activeView === "analysis"} />
           </>
         );
