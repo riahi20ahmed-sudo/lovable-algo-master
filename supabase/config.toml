@@ -1,0 +1,4 @@
+project_id = "ajagfiodnevbxxibwsgo"
+
+[functions.trading-analysis]
+verify_jwt = false

@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Sparkles, Bot, User, Zap, Clock, BarChart2 } from "lucide-react";
+import { Send, Loader2, Bot, User, Zap, Clock, BarChart2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { Analysis, Message } from "@/lib/types";
-import { extractAsset, generateMockAnalysis } from "@/lib/analysis";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface ChatPanelProps {
   onAnalysisComplete: (analysis: Analysis) => void;
@@ -23,9 +24,9 @@ const EXAMPLE_PROMPTS = [
 ];
 
 const FEATURES = [
-  { icon: Zap, text: "Real-time signals" },
+  { icon: Zap, text: "AI-powered analysis" },
   { icon: BarChart2, text: "Multi-timeframe" },
-  { icon: Clock, text: "24/7 analysis" },
+  { icon: Clock, text: "Real-time signals" },
 ];
 
 export function ChatPanel({
@@ -71,21 +72,46 @@ export function ChatPanel({
     setInput("");
     setIsAnalyzing(true);
 
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const { data, error } = await supabase.functions.invoke('trading-analysis', {
+        body: { message: messageText }
+      });
 
-    const asset = extractAsset(messageText);
-    const analysis = generateMockAnalysis(asset, messageText);
+      if (error) {
+        console.error("Edge function error:", error);
+        throw new Error(error.message || "Analysis failed");
+      }
 
-    const assistantMessage: Message = {
-      role: "assistant",
-      content: `Analysis complete for ${asset}. I've detected a ${analysis.trend} trend with ${analysis.riskManagement.confidence}% confidence. Check the analysis panel for detailed insights.`,
-      timestamp: new Date(),
-    };
+      if (data.error) {
+        throw new Error(data.error);
+      }
 
-    setMessages((prev) => [...prev, assistantMessage]);
-    setIsAnalyzing(false);
-    onAnalysisComplete(analysis);
+      const analysis = data.analysis as Analysis;
+      const summary = data.summary as string;
+
+      const assistantMessage: Message = {
+        role: "assistant",
+        content: summary || `Analysis complete for ${analysis.asset}. I've detected a ${analysis.trend} trend with ${analysis.riskManagement.confidence}% confidence. Check the analysis panel for detailed insights.`,
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev, assistantMessage]);
+      onAnalysisComplete(analysis);
+    } catch (error) {
+      console.error("Analysis error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Analysis failed";
+      
+      toast.error(errorMessage);
+      
+      const assistantMessage: Message = {
+        role: "assistant",
+        content: `Sorry, I encountered an error: ${errorMessage}. Please try again.`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, assistantMessage]);
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -198,7 +224,7 @@ export function ChatPanel({
                   <div className="flex items-center gap-3">
                     <Loader2 className="w-4 h-4 animate-spin text-primary" />
                     <span className="text-sm text-muted-foreground">
-                      Analyzing market data...
+                      AI is analyzing market data...
                     </span>
                   </div>
                 </div>
